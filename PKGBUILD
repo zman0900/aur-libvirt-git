@@ -5,7 +5,7 @@
 # Contributor: Dan Ziemba <zman0900@gmail.com>
 
 pkgname=libvirt-git
-pkgver=VE.2015.5313.87.g7bf3c13
+pkgver=1.3.1.rc2.3.g8f0a157
 pkgrel=1
 pkgdesc="API for controlling virtualization engines (openvz,kvm,qemu,virtualbox,xen,etc)"
 arch=('i686' 'x86_64')
@@ -68,10 +68,10 @@ source=('git+git://libvirt.org/libvirt.git'
 	libvirtd.conf.d
 	libvirtd-guests.conf.d
 	libvirt.tmpfiles.d)
-sha512sums=('SKIP'
-	    'eebc616fcdf3c92338f3967f99701ed2d156d4a3835c31aebe8299b2f5fe00717f09ee2da79b3d5810348033f0b82ff05c70a775a8309d886919e75fa862e302'
-	    '9012a2bd2b262a6f95d739f97b6ebc6938310616aca05d501efd9d3fc69d71500366dcfe9046a37f8ce30929bcd6eea9cf6770cf757998ecce4b475a25914801'
-	    '9e3e9f479b17528d70e812e6851cf4209ad73b577d478170bf7d80f075be4f2ee2e28adbe1e542002bbaea15e34830ff60e4ca2e34a5ac5a925440ca25864c31')
+md5sums=('SKIP'
+         '5e31269067dbd12ca871234450bb66bb'
+         '384fff96c6248d4f020f6fa66c32b357'
+         '020971887442ebbf1b6949e031c8dd3f')
 
 pkgver() {
   cd "$SRCDEST/libvirt"
