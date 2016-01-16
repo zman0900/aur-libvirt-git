@@ -2,6 +2,7 @@
 # Contributor: Jonas Heinrich <onny@project-insanity.org>
 # Contributor: Sergej Pupykin <pupykin.s+arch@gmail.com>
 # Contributor: Jonathan Wiersma <archaur at jonw dot org>
+# Contributor: Dan Ziemba <zman0900@gmail.com>
 
 pkgname=libvirt-git
 pkgver=VE.2015.5313.87.g7bf3c13
@@ -10,26 +11,28 @@ pkgdesc="API for controlling virtualization engines (openvz,kvm,qemu,virtualbox,
 arch=('i686' 'x86_64')
 url="http://libvirt.org/"
 license=('LGPL')
-depends=('e2fsprogs' 'gnutls' 'iptables' 'libxml2' 'parted' 'polkit' 'python'
-	 'avahi' 'yajl' 'libpciaccess' 'udev' 'dbus-core' 'libxau' 'libxdmcp' 'libpcap'
+depends=('e2fsprogs' 'gnutls' 'iptables' 'libxml2' 'parted' 'polkit' 'python2'
+	 'avahi' 'yajl' 'libpciaccess' 'udev' 'dbus' 'libxau' 'libxdmcp' 'libpcap' 'libcap-ng'
 	 'curl' 'libsasl' 'libgcrypt' 'libgpg-error' 'openssl' 'libxcb' 'gcc-libs'
-	 'iproute2' 'libnl' 'libx11' 'perl-xml-xpath')
-makedepends=('git' 'pkgconfig' 'lvm2' 'linux-api-headers' 'dnsmasq' 'libxslt' 'xhtml-docs')
-optdepends=('bridge-utils: for briged networking (default)'
-	    'dnsmasq: for NAT/DHCP for guests'
+	 'iproute2' 'libnl' 'libx11' 'numactl' 'gettext' 'ceph' 'libssh2' 'netcf')
+makedepends=('git' 'pkgconfig' 'lvm2' 'linux-api-headers' 'dnsmasq' 'lxc'
+             'libiscsi' 'open-iscsi'
+             'perl-xml-xpath' 'libxslt' 'qemu' 'xhtml-docs')
+optdepends=('ebtables: required for default NAT networking'
+	    'dnsmasq: required for default NAT/DHCP for guests'
+	    'bridge-utils: for bridged networking'
 	    'openbsd-netcat: for remote management over ssh'
 	    'qemu'
 	    'radvd'
 	    'dmidecode'
-	    'ebtables'
-	    'pm-utils: host power management'
-	    'audit')
+	    'pm-utils: host power management')
 conflicts=('libvirt')
 provides=('libvirt')
 options=('emptydirs')
 backup=('etc/conf.d/libvirt-guests'
 	'etc/conf.d/libvirtd'
 	'etc/libvirt/libvirt.conf'
+        'etc/libvirt/virtlogd.conf'
 	'etc/libvirt/libvirtd.conf'
 	'etc/libvirt/lxc.conf'
 	'etc/libvirt/nwfilter/allow-arp.xml'
@@ -75,17 +78,39 @@ pkgver() {
   git describe --always | sed 's|-|.|g' | sed 's/^.//'
 }
 
+prepare() {
+  cd "$srcdir/libvirt"
+
+  for file in $(find . -name '*.py' -print); do
+    sed -i 's_#!.*/usr/bin/python_#!/usr/bin/python2_' $file
+    sed -i 's_#!.*/usr/bin/env.*python_#!/usr/bin/env python2_' $file
+  done
+
+  sed -i 's|/sysconfig/|/conf.d/|g' \
+    daemon/libvirtd.service.in \
+    tools/{libvirt-guests.service,libvirt-guests.sh,virt-pki-validate}.in \
+    src/locking/virtlockd.service.in
+  sed -i 's|@sbindir@|/usr/bin|g' src/locking/virtlockd.service.in
+  # 78 is kvm group: https://wiki.archlinux.org/index.php/DeveloperWiki:UID_/_GID_Database
+  sed -i 's|#group =.*|group="78"|' src/qemu/qemu.conf
+  sed -i 's|/usr/libexec/qemu-bridge-helper|/usr/lib/qemu/qemu-bridge-helper|g' \
+    src/qemu/qemu{.conf,_conf.c} \
+    src/qemu/test_libvirtd_qemu.aug.in
+}
+
 build() {
   cd "$srcdir/libvirt"
 
+  export PYTHON=`which python2`
   export LDFLAGS=-lX11
   export RADVD=/usr/bin/radvd
   NOCONFIGURE=1 ./autogen.sh 
-  ./configure --prefix=/usr --libexec=/usr/lib/"${pkgname/-git/}" --sbindir=/usr/bin --with-init-script=systemd
+  ./configure --prefix=/usr --libexec=/usr/lib/"${pkgname/-git/}" --sbindir=/usr/bin \
+      --with-storage-lvm --without-xen --with-udev --without-hal --disable-static \
+      --with-init-script=systemd \
+      --with-qemu-user=nobody --with-qemu-group=nobody \
+      --with-netcf --with-interface --with-lxc --with-storage-iscsi
   make
-
-  sed -i 's|/etc/sysconfig/|/etc/conf.d/|' daemon/libvirtd.service tools/libvirt-guests.service
-  sed -i 's|@sbindir@|/usr/bin|g' src/virtlockd.service
 }
 
 package() {
@@ -105,7 +130,5 @@ package() {
   rm -rf \
 	"$pkgdir"/var/run \
 	"$pkgdir"/etc/sysconfig \
-	"$pkgdir"/etc/rc.d/init.d \
-	"$pkgdir"/lib \
-	"$pkgdir"/etc/sysctl.d
+	"$pkgdir"/etc/rc.d
 }
