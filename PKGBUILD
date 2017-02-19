@@ -5,7 +5,7 @@
 # Contributor: Dan Ziemba <zman0900@gmail.com>
 
 pkgname=libvirt-git
-pkgver=1.3.1.rc2.3.g8f0a157
+pkgver=3.0.0.212.gd3ffa0ece
 pkgrel=1
 pkgdesc="API for controlling virtualization engines (openvz,kvm,qemu,virtualbox,xen,etc)"
 arch=('i686' 'x86_64')
@@ -17,22 +17,21 @@ depends=('e2fsprogs' 'gnutls' 'iptables' 'libxml2' 'parted' 'polkit' 'python2'
 	 'iproute2' 'libnl' 'libx11' 'numactl' 'gettext' 'ceph' 'libssh2' 'netcf')
 makedepends=('git' 'pkgconfig' 'lvm2' 'linux-api-headers' 'dnsmasq' 'lxc'
              'libiscsi' 'open-iscsi'
-             'perl-xml-xpath' 'libxslt' 'qemu' 'xhtml-docs')
+             'perl-xml-xpath' 'libxslt' 'qemu')
 optdepends=('ebtables: required for default NAT networking'
 	    'dnsmasq: required for default NAT/DHCP for guests'
 	    'bridge-utils: for bridged networking'
 	    'openbsd-netcat: for remote management over ssh'
 	    'qemu'
 	    'radvd'
-	    'dmidecode'
-	    'pm-utils: host power management')
+	    'dmidecode')
 conflicts=('libvirt')
 provides=('libvirt')
 options=('emptydirs')
 backup=('etc/conf.d/libvirt-guests'
 	'etc/conf.d/libvirtd'
 	'etc/libvirt/libvirt.conf'
-        'etc/libvirt/virtlogd.conf'
+    'etc/libvirt/virtlogd.conf'
 	'etc/libvirt/libvirtd.conf'
 	'etc/libvirt/lxc.conf'
 	'etc/libvirt/nwfilter/allow-arp.xml'
@@ -68,10 +67,10 @@ source=('git+git://libvirt.org/libvirt.git'
 	libvirtd.conf.d
 	libvirtd-guests.conf.d
 	libvirt.tmpfiles.d)
-md5sums=('SKIP'
-         '5e31269067dbd12ca871234450bb66bb'
-         '384fff96c6248d4f020f6fa66c32b357'
-         '020971887442ebbf1b6949e031c8dd3f')
+sha256sums=('SKIP'
+            '9d0597bbf2bd7892420cebaf0563236fe1483b83ae95ee6263c1ce7f44a44134'
+            '0896c30100e9e40aee1eb4a2cf0cac2c0bdd5fd7b077b9d2680d90e77435ea66'
+            '5c26353833944db8dc97aa63843734519d6521bd8d88497d94d910ee9d3169d8')
 
 pkgver() {
   cd "$SRCDEST/libvirt"
@@ -96,6 +95,8 @@ prepare() {
   sed -i 's|/usr/libexec/qemu-bridge-helper|/usr/lib/qemu/qemu-bridge-helper|g' \
     src/qemu/qemu{.conf,_conf.c} \
     src/qemu/test_libvirtd_qemu.aug.in
+  
+  sed -i 's/notify/simple/' daemon/libvirtd.service.in
 }
 
 build() {
@@ -105,6 +106,7 @@ build() {
   export LDFLAGS=-lX11
   export RADVD=/usr/bin/radvd
   NOCONFIGURE=1 ./autogen.sh 
+  sed -i 's|libsystemd-daemon|libsystemd|g' configure
   ./configure --prefix=/usr --libexec=/usr/lib/"${pkgname/-git/}" --sbindir=/usr/bin \
       --with-storage-lvm --without-xen --with-udev --without-hal --disable-static \
       --with-init-script=systemd \
@@ -132,3 +134,4 @@ package() {
 	"$pkgdir"/etc/sysconfig \
 	"$pkgdir"/etc/rc.d
 }
+
